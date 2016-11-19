@@ -5,11 +5,12 @@ class InstagramUpload() {
     private $password;
 
     function __construct($username, $password) {
-      $this->username = 'wolfchucker';
-      $this->password = '8BxxcD';
+      $this->username = $username;
+      $this->password = $password;
+      $this->auth();
     }
 
-    public function send_request($url, $post, $post_data, $user_agent, $cookies) {
+    private function send_request($url, $post, $post_data, $user_agent, $cookies) {
       $ch = curl_init();
       curl_setopt($ch, CURLOPT_URL, 'https://i.instagram.com/api/v1/'.$url);
       curl_setopt($ch, CURLOPT_USERAGENT, $user_agent);
@@ -78,7 +79,6 @@ class InstagramUpload() {
       return $post_data;
     }
 
-
     private function auth() {
       $this->agent = $this->generate_user_agent();
       $this->guid = $this->generate_guid();
@@ -97,11 +97,9 @@ class InstagramUpload() {
       return true;
     }
 
-    private function post_image($filename, $caption='Do titles matter?') {
-      $this->auth();
+    public function post_image($filename, $caption='Do titles matter?') {
       $data = $this->get_post_data($filename);
       $post = $this->send_request('media/upload/', true, $data, $this->agent, true);
-
       // Remove and line breaks from the caption
       $caption = preg_replace("/\r|\n/", "", $caption);
       $media_id = $post['media_id'];
