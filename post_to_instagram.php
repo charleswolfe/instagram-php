@@ -1,8 +1,8 @@
 <?php
 
-class InstagramUpload() {
-    private $username;
-    private $password;
+class InstagramUpload {
+    protected $username;
+    protected $password;
 
     function __construct($username, $password) {
       $this->username = $username;
@@ -27,18 +27,22 @@ class InstagramUpload() {
       }
       $response = curl_exec($ch);
       $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+      var_dump($response);
       curl_close($ch);
 
+      if ($http != 200) {
+        throw new Exception("Bad return [{$http}]");
+      }
       if (empty($response)) {
-         throw("Empty response received from the server while trying to configure the image");
+         throw new Exception("Empty response received from the server while trying to configure the image");
       }
       if (strpos($response, "login_required")) {
-          throw("You are not logged in. There's a chance that the account is banned");
+          throw new Exception("You are not logged in. There's a chance that the account is banned");
       }
       $obj = @json_decode($response, true);
       $status = $obj['status'];
       if ($status != 'ok') {
-        throw("Status isn't okay");
+        throw new Exception("Status isn't okay");
       }
 
       return $obj;
@@ -57,9 +61,9 @@ class InstagramUpload() {
     }
 
     private function generate_user_agent() {
-       $resolutions = array('720x1280', '320x480', '480x800', '1024x768', '1280x720', '768x1024', '480x320');
-       $versions = array('GT-N7000', 'SM-N9000', 'GT-I9220', 'GT-I9100');
-       $dpis = array('120', '160', '320', '240');
+       $resolutions = ['720x1280', '320x480', '480x800', '1024x768', '1280x720', '768x1024', '480x320'];
+       $versions = ['GT-N7000', 'SM-N9000', 'GT-I9220', 'GT-I9100'];
+       $dpis = ['120', '160', '320', '240'];
        $ver = $versions[array_rand($versions)];
        $dpi = $dpis[array_rand($dpis)];
        $res = $resolutions[array_rand($resolutions)];
@@ -72,10 +76,11 @@ class InstagramUpload() {
 
     private function get_post_data($filename) {
       if (!$filename) {
-          throw("The image doesn't exist " . $filename);
+          throw new Exception("The image doesn't exist " . $filename);
       }
-      $post_data = array('device_timestamp' => time(),
-                      'photo' => '@'.$filename);
+      $post_data = ['device_timestamp' => time(),
+                      'photo' => new CURLFile($filename)
+                    ];
       return $post_data;
     }
 
@@ -100,7 +105,8 @@ class InstagramUpload() {
     public function post_image($filename, $caption='Do titles matter?') {
       $data = $this->get_post_data($filename);
       $post = $this->send_request('media/upload/', true, $data, $this->agent, true);
-      // Remove and line breaks from the caption
+
+      // Now, configure the photo
       $caption = preg_replace("/\r|\n/", "", $caption);
       $media_id = $post['media_id'];
       $data = '{"device_id":"'.$this->device_id.
@@ -111,7 +117,7 @@ class InstagramUpload() {
         '","source_type":"5","filter_type":"0","extra":"{}","Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"}';
       $sig = $this->generate_signature($data);
       $new_data = 'signed_body='.$sig.'.'.urlencode($data).'&ig_sig_key_version=4';
-      // Now, configure the photo
       $conf = $this->send_request('media/configure/', true, $new_data, $this->agent, true);
+
     }
 }

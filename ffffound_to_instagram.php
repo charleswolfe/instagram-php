@@ -1,4 +1,8 @@
 <?php
+require_once('post_to_instagram.php');
+error_reporting(E_ALL);
+
+
 /*
 simple PHP script to fetch an image from FFFFOUND and post to wherever
 I use it to post to instagram, so there's a step in here to resize the image
@@ -26,7 +30,7 @@ foreach ($tags as $tag) {
 $image = file_get_contents($image_url);
 $title = (string) $first_entry->title;
 $author = (string) $first_entry->author;
-print_r($title);
+print_r($title . PHP_EOL);
 
 //crop and convert first image
 $im = imagecreatefromstring($image);
@@ -60,7 +64,10 @@ imagecopyresampled(
   $limiting_dim
 );
 imagejpeg($new, $image_file);
-
-exec('php postimage.php ' . $image_file . ' "Quoted from: ' . $title . ' #FFFFOUND "');
-
+try {
+  $ig = new InstagramUpload('username', 'password');
+  $ig->post_image($image_file, "Quoted from: ' . $title . ' #FFFFOUND ");
+} catch(Exception $e) {
+  echo $e;
+}
 unlink($image_file);
