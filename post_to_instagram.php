@@ -27,7 +27,6 @@ class InstagramUpload {
       }
       $response = curl_exec($ch);
       $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-      var_dump($response);
       curl_close($ch);
 
       if ($http != 200) {
@@ -44,7 +43,6 @@ class InstagramUpload {
       if ($status != 'ok') {
         throw new Exception("Status isn't okay");
       }
-
       return $obj;
     }
 
@@ -96,19 +94,17 @@ class InstagramUpload {
         '","password":"'.$this->password.
         '","Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"}';
       $sig = $this->generate_signature($data);
-      $data = 'signed_body='.$sig.'.'.urlencode($data).'&ig_sig_key_version=4';
-      /* Maybe i should do list($http_response, $response) =   */
+      $data = 'signed_body=' . $sig . '.' . urlencode($data) . '&ig_sig_key_version=4';
       $response = $this->send_request('accounts/login/', true, $data, $this->agent, false);
-      return true;
+      return $response;
     }
 
     public function post_image($filename, $caption='Do titles matter?') {
       $data = $this->get_post_data($filename);
-      $post = $this->send_request('media/upload/', true, $data, $this->agent, true);
-
+      $upload_response = $this->send_request('media/upload/', true, $data, $this->agent, true);
       // Now, configure the photo
       $caption = preg_replace("/\r|\n/", "", $caption);
-      $media_id = $post['media_id'];
+      $media_id = $upload_response['media_id'];
       $data = '{"device_id":"'.$this->device_id.
         '","guid":"'.$this->guid.
         '","media_id":"'.$media_id.
@@ -117,7 +113,7 @@ class InstagramUpload {
         '","source_type":"5","filter_type":"0","extra":"{}","Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"}';
       $sig = $this->generate_signature($data);
       $new_data = 'signed_body='.$sig.'.'.urlencode($data).'&ig_sig_key_version=4';
-      $conf = $this->send_request('media/configure/', true, $new_data, $this->agent, true);
-
+      $conf_response = $this->send_request('media/configure/', true, $new_data, $this->agent, true);
+      return [$upload_reponse, $conf_response];
     }
 }
